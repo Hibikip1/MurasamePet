@@ -374,13 +374,17 @@ def uninstall_pip_uv():
 
 def run_download():
     """运行download.py"""
-    log("添加modelscope依赖...")
-    if not run_command(["uv", "add", "modelscope"]):
-        log("uv add modelscope失败", "ERROR")
-        sys.exit(1)
+    log("检查modelscope依赖...")
+    try:
+        import modelscope
+        log("已检测到 modelscope，无需重新安装。")
+    except ImportError:
+        log("未检测到 modelscope，正在用 pip 安装...")
+        if not run_command([sys.executable, "-m", "pip", "install", "modelscope"]):
+            log("pip install modelscope 失败", "ERROR")
+            sys.exit(1)
     log("运行download.py...")
-    # 使用uv run确保在虚拟环境中运行
-    if run_command(["uv", "run", "python", "download.py"]):
+    if run_command([sys.executable, "download.py"]):
         log("download.py执行成功")
     else:
         log("download.py执行失败", "ERROR")
@@ -718,11 +722,14 @@ def main():
             run_download()
 
         if not check_install_executed() and is_local(config["endpoints"]["gpt_sovits"]):
-            log("执行uv sync以安装依赖...")
-            if not run_command(["uv", "sync"]):
-                log("uv sync失败", "ERROR")
-                sys.exit(1)
-            log("uv sync成功")
+            if system != "Windows":
+                log("执行uv sync以安装依赖...")
+                if not run_command(["uv", "sync"]):
+                    log("uv sync失败", "ERROR")
+                    sys.exit(1)
+                log("uv sync成功")
+            else:
+                log("请手动用 pip 安装依赖（pip install -r requirements.txt 或 pip install .），如已安装请忽略此提示。", "INFO")
             run_install()
 
     else:
